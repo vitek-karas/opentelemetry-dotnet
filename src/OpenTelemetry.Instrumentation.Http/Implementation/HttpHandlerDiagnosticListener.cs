@@ -15,6 +15,7 @@
 // </copyright>
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 #if NETFRAMEWORK
 using System.Net.Http;
 #endif
@@ -47,6 +48,9 @@ namespace OpenTelemetry.Instrumentation.Http.Implementation
         private readonly HttpClientInstrumentationOptions options;
 
         private readonly HttpSemanticConvention httpSemanticConvention;
+
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+        private readonly TypeInfo activityStartDataType = Type.GetType("System.Net.Http.DiagnosticsHandler+ActivityStartData, System.Net.Http").GetTypeInfo();
 
         static HttpHandlerDiagnosticListener()
         {
@@ -110,7 +114,7 @@ namespace OpenTelemetry.Instrumentation.Http.Implementation
                 return;
             }
 
-            if (!this.startRequestFetcher.TryFetch(payload, out HttpRequestMessage request) || request == null)
+            if (!this.startRequestFetcher.TryFetch(this.activityStartDataType, payload, out HttpRequestMessage request) || request == null)
             {
                 HttpInstrumentationEventSource.Log.NullPayload(nameof(HttpHandlerDiagnosticListener), nameof(this.OnStartActivity));
                 return;

@@ -14,6 +14,7 @@
 // limitations under the License.
 // </copyright>
 
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using OpenTelemetry.Internal;
 #pragma warning restore IDE0005
@@ -84,10 +85,32 @@ namespace OpenTelemetry.Instrumentation
             return this.innerFetcher.TryFetch(obj, out value);
         }
 
+        public bool TryFetch([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type objectType, object obj, out T value, bool skipObjNullCheck = false)
+        {
+            if (!skipObjNullCheck && obj == null)
+            {
+                value = default;
+                return false;
+            }
+
+            if (this.innerFetcher == null)
+            {
+                this.innerFetcher = PropertyFetch.Create(objectType.GetTypeInfo(), this.propertyName);
+            }
+
+            if (this.innerFetcher == null)
+            {
+                value = default;
+                return false;
+            }
+
+            return this.innerFetcher.TryFetch(obj, out value);
+        }
+
         // see https://github.com/dotnet/corefx/blob/master/src/System.Diagnostics.DiagnosticSource/src/System/Diagnostics/DiagnosticSourceEventSource.cs
         private class PropertyFetch
         {
-            public static PropertyFetch Create(TypeInfo type, string propertyName)
+            public static PropertyFetch Create([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TypeInfo type, string propertyName)
             {
                 var property = type.DeclaredProperties.FirstOrDefault(p => string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase));
                 if (property == null)
@@ -124,7 +147,7 @@ namespace OpenTelemetry.Instrumentation
                 private readonly string propertyName;
                 private readonly Func<TDeclaredObject, TDeclaredProperty> propertyFetch;
 
-                private PropertyFetch innerFetcher;
+                // private PropertyFetch innerFetcher;
 
                 public TypedPropertyFetch(PropertyInfo property)
                 {
@@ -140,15 +163,18 @@ namespace OpenTelemetry.Instrumentation
                         return true;
                     }
 
-                    this.innerFetcher ??= Create(obj.GetType().GetTypeInfo(), this.propertyName);
+                    // this.innerFetcher ??= Create(obj.GetType().GetTypeInfo(), this.propertyName);
 
-                    if (this.innerFetcher == null)
-                    {
-                        value = default;
-                        return false;
-                    }
+                    // if (this.innerFetcher == null)
+                    // {
+                    //    value = default;
+                    //    return false;
+                    // }
 
-                    return this.innerFetcher.TryFetch(obj, out value);
+                    // return this.innerFetcher.TryFetch(obj, out value);
+
+                    value = default;
+                    return false;
                 }
             }
         }

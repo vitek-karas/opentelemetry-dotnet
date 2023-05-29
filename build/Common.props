@@ -54,6 +54,9 @@
     <Compile Include="$(RepoRoot)\src\OpenTelemetry\DiagnosticSourceInstrumentation\InstrumentationEventSource.cs" Link="Includes\InstrumentationEventSource.cs" />
     <Compile Include="$(RepoRoot)\src\OpenTelemetry\DiagnosticSourceInstrumentation\ListenerHandler.cs" Link="Includes\ListenerHandler.cs" />
     <Compile Include="$(RepoRoot)\src\OpenTelemetry\DiagnosticSourceInstrumentation\PropertyFetcher.cs" Link="Includes\PropertyFetcher.cs" />
+    <Compile Include="$(RepoRoot)\src\OpenTelemetry.Api\Internal\Shims\DynamicallyAccessedMembersAttribute.cs" Link="Includes\DynamicallyAccessedMembersAttribute.cs" />
+    <Compile Include="$(RepoRoot)\src\OpenTelemetry.Api\Internal\Shims\RequiresUnreferencedCodeAttribute.cs" Link="Includes\RequiresUnreferencedCodeAttribute.cs" />
+    <Compile Include="$(RepoRoot)\src\OpenTelemetry.Api\Internal\Shims\RequiresDynamicCodeAttribute.cs" Link="Includes\RequiresDynamicCodeAttribute.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(IncludeInstrumentationHelpers)'=='true' Or '$(IncludeDiagnosticSourceInstrumentationHelpers)'=='true'">

@@ -37,8 +37,8 @@ namespace OpenTelemetry.Instrumentation.Tests
             var fetch = new PropertyFetcher<string>("DisplayName2");
             Assert.False(fetch.TryFetch(activity, out string result));
 
-            var fetchInt = new PropertyFetcher<int>("DisplayName2");
-            Assert.False(fetchInt.TryFetch(activity, out int resultInt));
+            var fetchInt = new PropertyFetcher<PayloadTypeD>("DisplayName2");
+            Assert.False(fetchInt.TryFetch(activity, out PayloadTypeD resultInt));
 
             Assert.Equal(default, result);
             Assert.Equal(default, resultInt);
@@ -62,7 +62,10 @@ namespace OpenTelemetry.Instrumentation.Tests
             Assert.True(fetch.TryFetch(new PayloadTypeB(), out propertyValue));
             Assert.Equal("B", propertyValue);
 
-            Assert.False(fetch.TryFetch(new PayloadTypeC(), out _));
+            Assert.True(fetch.TryFetch(new PayloadTypeC(), out propertyValue));
+            Assert.Equal("C", propertyValue);
+
+            Assert.False(fetch.TryFetch(new PayloadTypeD(), out _));
 
             Assert.False(fetch.TryFetch(null, out _));
         }
@@ -72,7 +75,7 @@ namespace OpenTelemetry.Instrumentation.Tests
         {
             var fetch = new PropertyFetcher<string>("Property");
 
-            Assert.False(fetch.TryFetch(new PayloadTypeC(), out _));
+            Assert.False(fetch.TryFetch(new PayloadTypeD(), out _));
 
             Assert.True(fetch.TryFetch(new PayloadTypeA(), out string propertyValue));
             Assert.Equal("A", propertyValue);
@@ -89,6 +92,11 @@ namespace OpenTelemetry.Instrumentation.Tests
         }
 
         private class PayloadTypeC
+        {
+            public string Property { get; set; } = "C";
+        }
+
+        private class PayloadTypeD
         {
         }
     }
