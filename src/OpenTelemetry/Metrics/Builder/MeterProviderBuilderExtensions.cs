@@ -16,6 +16,7 @@
 
 #nullable enable
 
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Metrics;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
@@ -61,7 +62,7 @@ namespace OpenTelemetry.Metrics
         /// <typeparam name="T">Reader type.</typeparam>
         /// <param name="meterProviderBuilder"><see cref="MeterProviderBuilder"/>.</param>
         /// <returns>The supplied <see cref="MeterProviderBuilder"/> for chaining.</returns>
-        public static MeterProviderBuilder AddReader<T>(this MeterProviderBuilder meterProviderBuilder)
+        public static MeterProviderBuilder AddReader<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(this MeterProviderBuilder meterProviderBuilder)
             where T : MetricReader
         {
             meterProviderBuilder.ConfigureServices(services => services.TryAddSingleton<T>());

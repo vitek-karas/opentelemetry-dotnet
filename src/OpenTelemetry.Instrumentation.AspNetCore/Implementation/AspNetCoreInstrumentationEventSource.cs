@@ -14,6 +14,7 @@
 // limitations under the License.
 // </copyright>
 
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Tracing;
 using OpenTelemetry.Internal;
 
@@ -57,12 +58,16 @@ namespace OpenTelemetry.Instrumentation.AspNetCore.Implementation
             this.WriteEvent(2, handlerName, eventName, operationName);
         }
 
+        // Won't be needed with https://github.com/dotnet/runtime/pull/83751 (.NET 8 only)
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:UnrecognizedReflectionPattern", Justification = "Parameters to this event are primitive and are trimmer safe")]
         [Event(3, Message = "Filter threw exception, request will not be collected. HandlerName: '{0}', EventName: '{1}', OperationName: '{2}', Exception: {3}.", Level = EventLevel.Error)]
         public void RequestFilterException(string handlerName, string eventName, string operationName, string exception)
         {
             this.WriteEvent(3, handlerName, eventName, operationName, exception);
         }
 
+        // Won't be needed with https://github.com/dotnet/runtime/pull/83751 (.NET 8 only)
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:UnrecognizedReflectionPattern", Justification = "Parameters to this event are primitive and are trimmer safe")]
         [Event(4, Message = "Enrich threw exception. HandlerName: '{0}', EventName: '{1}', OperationName: '{2}', Exception: {3}.", Level = EventLevel.Warning)]
         public void EnrichmentException(string handlerName, string eventName, string operationName, string exception)
         {

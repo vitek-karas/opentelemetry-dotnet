@@ -16,7 +16,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using OpenTelemetry.Internal;
 #pragma warning restore IDE0005
 
 namespace OpenTelemetry.Instrumentation
@@ -27,6 +26,8 @@ namespace OpenTelemetry.Instrumentation
     /// <typeparam name="T">The type of the property being fetched.</typeparam>
     internal sealed class PropertyFetcher<T>
     {
+        private const DynamicallyAccessedMemberTypes AllProperties = DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties;
+
         private readonly string propertyName;
         private PropertyFetch innerFetcher;
 
@@ -40,29 +41,13 @@ namespace OpenTelemetry.Instrumentation
         }
 
         /// <summary>
-        /// Fetch the property from the object.
-        /// </summary>
-        /// <param name="obj">Object to be fetched.</param>
-        /// <returns>Property fetched.</returns>
-        public T Fetch(object obj)
-        {
-            Guard.ThrowIfNull(obj);
-
-            if (!this.TryFetch(obj, out T value, true))
-            {
-                throw new ArgumentException($"Unable to fetch property: '{nameof(obj)}'", nameof(obj));
-            }
-
-            return value;
-        }
-
-        /// <summary>
         /// Try to fetch the property from the object.
         /// </summary>
         /// <param name="obj">Object to be fetched.</param>
         /// <param name="value">Fetched value.</param>
         /// <param name="skipObjNullCheck">Set this to <see langword= "true"/> if we know <paramref name="obj"/> is not <see langword= "null"/>.</param>
         /// <returns><see langword= "true"/> if the property was fetched.</returns>
+        [RequiresUnreferencedCode("Allows access to properties on random object which is not trim compatible")]
         public bool TryFetch(object obj, out T value, bool skipObjNullCheck = false)
         {
             if (!skipObjNullCheck && obj == null)
@@ -73,7 +58,7 @@ namespace OpenTelemetry.Instrumentation
 
             if (this.innerFetcher == null)
             {
-                this.innerFetcher = PropertyFetch.Create(obj.GetType().GetTypeInfo(), this.propertyName);
+                this.innerFetcher = PropertyFetch.Create(obj, this.propertyName);
             }
 
             if (this.innerFetcher == null)
@@ -85,7 +70,7 @@ namespace OpenTelemetry.Instrumentation
             return this.innerFetcher.TryFetch(obj, out value);
         }
 
-        public bool TryFetch([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type objectType, object obj, out T value, bool skipObjNullCheck = false)
+        public bool TryFetch([DynamicallyAccessedMembers(AllProperties)] Type objectType, object obj, out T value, bool skipObjNullCheck = false)
         {
             if (!skipObjNullCheck && obj == null)
             {
@@ -110,28 +95,19 @@ namespace OpenTelemetry.Instrumentation
         // see https://github.com/dotnet/corefx/blob/master/src/System.Diagnostics.DiagnosticSource/src/System/Diagnostics/DiagnosticSourceEventSource.cs
         private class PropertyFetch
         {
-            public static PropertyFetch Create([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TypeInfo type, string propertyName)
+            public static PropertyFetch Create([DynamicallyAccessedMembers(AllProperties)] TypeInfo type, string propertyName)
             {
-                var property = type.DeclaredProperties.FirstOrDefault(p => string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase));
-                if (property == null)
+                return Create(type, propertyName, null);
+            }
+
+            [RequiresUnreferencedCode("Allows access to properties on random object which is not trim compatible")]
+            public static PropertyFetch Create(object obj, string propertyName)
+            {
+                return Create(obj.GetType().GetTypeInfo(), propertyName, FallbackPropertyFetchCreator);
+
+                static PropertyFetch FallbackPropertyFetchCreator(object obj, string propertyName)
                 {
-                    property = type.GetProperty(propertyName);
-                }
-
-                return CreateFetcherForProperty(property);
-
-                static PropertyFetch CreateFetcherForProperty(PropertyInfo propertyInfo)
-                {
-                    if (propertyInfo == null || !typeof(T).IsAssignableFrom(propertyInfo.PropertyType))
-                    {
-                        // returns null and wait for a valid payload to arrive.
-                        return null;
-                    }
-
-                    var typedPropertyFetcher = typeof(TypedPropertyFetch<,>);
-                    var instantiatedTypedPropertyFetcher = typedPropertyFetcher.MakeGenericType(
-                        typeof(T), propertyInfo.DeclaringType, propertyInfo.PropertyType);
-                    return (PropertyFetch)Activator.CreateInstance(instantiatedTypedPropertyFetcher, propertyInfo);
+                    return Create(obj, propertyName);
                 }
             }
 
@@ -141,18 +117,46 @@ namespace OpenTelemetry.Instrumentation
                 return false;
             }
 
-            private sealed class TypedPropertyFetch<TDeclaredObject, TDeclaredProperty> : PropertyFetch
-                where TDeclaredProperty : T
+            // TODO: REMOVE - this is NOT safe
+            [UnconditionalSuppressMessage("AOT", "IL3050:MakeGenericType")]
+            private static PropertyFetch Create([DynamicallyAccessedMembers(AllProperties)] TypeInfo type, string propertyName, Func<object, string, PropertyFetch> fallbackPropertyFetchCreator)
+            {
+                var property = type.DeclaredProperties.FirstOrDefault(p => string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase));
+                if (property == null)
+                {
+                    property = type.GetProperty(propertyName);
+                }
+
+                return CreateFetcherForProperty(property, fallbackPropertyFetchCreator);
+
+                static PropertyFetch CreateFetcherForProperty(PropertyInfo propertyInfo, Func<object, string, PropertyFetch> fallbackPropertyFetchCreator)
+                {
+                    if (propertyInfo == null || !typeof(T).IsAssignableFrom(propertyInfo.PropertyType))
+                    {
+                        // returns null and wait for a valid payload to arrive.
+                        return null;
+                    }
+
+                    var typedPropertyFetcher = typeof(TypedPropertyFetch<>);
+                    var instantiatedTypedPropertyFetcher = typedPropertyFetcher.MakeGenericType(
+                        typeof(T), propertyInfo.DeclaringType);
+                    return (PropertyFetch)Activator.CreateInstance(instantiatedTypedPropertyFetcher, propertyInfo, fallbackPropertyFetchCreator);
+                }
+            }
+
+            private sealed class TypedPropertyFetch<TDeclaredObject> : PropertyFetch
             {
                 private readonly string propertyName;
-                private readonly Func<TDeclaredObject, TDeclaredProperty> propertyFetch;
+                private readonly Func<TDeclaredObject, T> propertyFetch;
+                private readonly Func<object, string, PropertyFetch> fallbackPropertyFetchCreator;
 
-                // private PropertyFetch innerFetcher;
+                private PropertyFetch innerFetcher;
 
-                public TypedPropertyFetch(PropertyInfo property)
+                public TypedPropertyFetch(PropertyInfo property, Func<object, string, PropertyFetch> fallbackPropertyFetchCreator)
                 {
                     this.propertyName = property.Name;
-                    this.propertyFetch = (Func<TDeclaredObject, TDeclaredProperty>)property.GetMethod.CreateDelegate(typeof(Func<TDeclaredObject, TDeclaredProperty>));
+                    this.propertyFetch = (Func<TDeclaredObject, T>)property.GetMethod.CreateDelegate(typeof(Func<TDeclaredObject, T>));
+                    this.fallbackPropertyFetchCreator = fallbackPropertyFetchCreator;
                 }
 
                 public override bool TryFetch(object obj, out T value)
@@ -163,15 +167,14 @@ namespace OpenTelemetry.Instrumentation
                         return true;
                     }
 
-                    // this.innerFetcher ??= Create(obj.GetType().GetTypeInfo(), this.propertyName);
-
-                    // if (this.innerFetcher == null)
-                    // {
-                    //    value = default;
-                    //    return false;
-                    // }
-
-                    // return this.innerFetcher.TryFetch(obj, out value);
+                    if (this.fallbackPropertyFetchCreator != null)
+                    {
+                        this.innerFetcher ??= this.fallbackPropertyFetchCreator(obj, this.propertyName);
+                        if (this.innerFetcher != null)
+                        {
+                            return this.innerFetcher.TryFetch(obj, out value);
+                        }
+                    }
 
                     value = default;
                     return false;

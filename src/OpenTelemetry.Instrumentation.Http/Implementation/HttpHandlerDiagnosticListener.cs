@@ -49,7 +49,7 @@ namespace OpenTelemetry.Instrumentation.Http.Implementation
 
         private readonly HttpSemanticConvention httpSemanticConvention;
 
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)]
         private readonly TypeInfo activityStartDataType = Type.GetType("System.Net.Http.DiagnosticsHandler+ActivityStartData, System.Net.Http").GetTypeInfo();
 
         static HttpHandlerDiagnosticListener()
