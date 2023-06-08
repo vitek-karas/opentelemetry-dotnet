@@ -1,1 +1,2 @@
-dotnet publish /p:TreatWarningsAsErrors=false /p:SuppressNETCoreSdkPreviewMessage=true > t.txt
+cd publishdir
+dotnet publish ..\OpenTelemetry.AotCompatibility.TestApp.csproj /p:TestWith8=true /p:TreatWarningsAsErrors=false /p:SuppressNETCoreSdkPreviewMessage=true /p:GenerateDocumentationFile=true > ..\t.txt
