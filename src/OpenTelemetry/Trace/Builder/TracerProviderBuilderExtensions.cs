@@ -17,6 +17,7 @@
 #nullable enable
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenTelemetry.Internal;
@@ -80,7 +81,7 @@ namespace OpenTelemetry.Trace
         /// <typeparam name="T">Sampler type.</typeparam>
         /// <param name="tracerProviderBuilder"><see cref="TracerProviderBuilder"/>.</param>
         /// <returns>The supplied <see cref="TracerProviderBuilder"/> for chaining.</returns>
-        public static TracerProviderBuilder SetSampler<T>(this TracerProviderBuilder tracerProviderBuilder)
+        public static TracerProviderBuilder SetSampler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(this TracerProviderBuilder tracerProviderBuilder)
             where T : Sampler
         {
             tracerProviderBuilder.ConfigureServices(services => services.TryAddSingleton<T>());
@@ -196,7 +197,7 @@ namespace OpenTelemetry.Trace
         /// <typeparam name="T">Processor type.</typeparam>
         /// <param name="tracerProviderBuilder"><see cref="TracerProviderBuilder"/>.</param>
         /// <returns>The supplied <see cref="TracerProviderBuilder"/> for chaining.</returns>
-        public static TracerProviderBuilder AddProcessor<T>(this TracerProviderBuilder tracerProviderBuilder)
+        public static TracerProviderBuilder AddProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(this TracerProviderBuilder tracerProviderBuilder)
             where T : BaseProcessor<Activity>
         {
             tracerProviderBuilder.ConfigureServices(services => services.TryAddSingleton<T>());

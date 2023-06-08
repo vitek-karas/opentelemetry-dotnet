@@ -16,6 +16,7 @@
 
 #nullable enable
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenTelemetry.Internal;
@@ -105,7 +106,7 @@ internal static class LoggerProviderBuilderExtensions
     /// <typeparam name="T">Processor type.</typeparam>
     /// <param name="loggerProviderBuilder"><see cref="LoggerProviderBuilder"/>.</param>
     /// <returns>The supplied <see cref="LoggerProviderBuilder"/> for chaining.</returns>
-    public static LoggerProviderBuilder AddProcessor<T>(this LoggerProviderBuilder loggerProviderBuilder)
+    public static LoggerProviderBuilder AddProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(this LoggerProviderBuilder loggerProviderBuilder)
         where T : BaseProcessor<LogRecord>
     {
         loggerProviderBuilder.ConfigureServices(services => services.TryAddSingleton<T>());
