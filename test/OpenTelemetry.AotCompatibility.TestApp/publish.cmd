@@ -1,0 +1,1 @@
+dotnet publish /p:TreatWarningsAsErrors=false /p:SuppressNETCoreSdkPreviewMessage=true > t.txt
