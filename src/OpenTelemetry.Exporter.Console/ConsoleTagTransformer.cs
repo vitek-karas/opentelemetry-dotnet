@@ -18,6 +18,8 @@ using OpenTelemetry.Internal;
 
 namespace OpenTelemetry.Exporter;
 
+// Workaround for the temporary visibility of OpenTelemetry - see the OpenTelemetry.Exporter.Console.csproj
+#pragma warning disable CS0436 // Type conflicts with imported type
 internal sealed class ConsoleTagTransformer : TagTransformer<string>
 {
     private ConsoleTagTransformer()
@@ -35,5 +37,5 @@ internal sealed class ConsoleTagTransformer : TagTransformer<string>
     protected override string TransformStringTag(string key, string value) => $"{key}: {value}";
 
     protected override string TransformArrayTag(string key, Array array)
-        => this.TransformStringTag(key, System.Text.Json.JsonSerializer.Serialize(array));
+        => this.TransformStringTag(key, TagTransformerJsonHelper.JsonSerializeArrayTag(array));
 }

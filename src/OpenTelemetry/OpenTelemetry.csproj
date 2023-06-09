@@ -20,4 +20,10 @@
   <ItemGroup>
     <ProjectReference Include="$(RepoRoot)\src\OpenTelemetry.Api.ProviderBuilderExtensions\OpenTelemetry.Api.ProviderBuilderExtensions.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Only some project have a need and dependency for System.Text.Json, but the helper is "shared" by multiple such projects.
+         So the helper is in OpenTelemetry but can't be compiled here since the System.Text.Json dependency doesn't exist here. -->
+    <Compile Remove="Internal/TagTransformerJsonHelper.cs"/>
+  </ItemGroup>
 </Project>
