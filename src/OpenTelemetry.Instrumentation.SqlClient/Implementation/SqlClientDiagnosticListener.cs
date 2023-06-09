@@ -16,11 +16,13 @@
 #if !NETFRAMEWORK
 using System.Data;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using OpenTelemetry.Trace;
 using static OpenTelemetry.Internal.HttpSemanticConventionHelper;
 
 namespace OpenTelemetry.Instrumentation.SqlClient.Implementation
 {
+    [RequiresUnreferencedCode(SqlClientInstrumentation.SqlClientTrimmingUnsupportedMessage)]
     internal sealed class SqlClientDiagnosticListener : ListenerHandler
     {
         public const string SqlDataBeforeExecuteCommand = "System.Data.SqlClient.WriteCommandBefore";

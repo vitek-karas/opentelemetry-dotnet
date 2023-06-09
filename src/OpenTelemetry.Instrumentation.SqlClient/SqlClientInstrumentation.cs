@@ -14,6 +14,7 @@
 // limitations under the License.
 // </copyright>
 
+using System.Diagnostics.CodeAnalysis;
 using OpenTelemetry.Instrumentation.SqlClient.Implementation;
 
 namespace OpenTelemetry.Instrumentation.SqlClient
@@ -24,6 +25,7 @@ namespace OpenTelemetry.Instrumentation.SqlClient
     internal sealed class SqlClientInstrumentation : IDisposable
     {
         internal const string SqlClientDiagnosticListenerName = "SqlClientDiagnosticListener";
+        internal const string SqlClientTrimmingUnsupportedMessage = "Trimming is not yet supported with SqlClient";
 
 #if NETFRAMEWORK
         private readonly SqlEventSourceListener sqlEventSourceListener;
@@ -48,6 +50,7 @@ namespace OpenTelemetry.Instrumentation.SqlClient
         /// Initializes a new instance of the <see cref="SqlClientInstrumentation"/> class.
         /// </summary>
         /// <param name="options">Configuration options for sql instrumentation.</param>
+        [RequiresUnreferencedCode(SqlClientInstrumentation.SqlClientTrimmingUnsupportedMessage)]
         public SqlClientInstrumentation(
             SqlClientInstrumentationOptions options = null)
         {
