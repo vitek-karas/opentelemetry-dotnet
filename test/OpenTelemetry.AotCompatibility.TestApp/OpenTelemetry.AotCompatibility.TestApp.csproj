@@ -30,6 +30,12 @@
 
     <TrimmerRootAssembly Update="@(TrimmerRootAssembly)" Path="$(RepoRoot)\src\%(Identity)\%(Identity).csproj" />
     <ProjectReference Include="@(TrimmerRootAssembly->'%(Path)')" />
+
+    <!-- This is normally done by default if PublishTrimmed=true in ASP.NET projects
+         but this project is not ASP.NET project so it needs to be turned off manually to avoid trimg/AOT warnings. -->
+    <RuntimeHostConfigurationOption Include="System.Text.Json.JsonSerializer.IsReflectionEnabledByDefault"
+                                    Value="false"
+                                    Trim="true"/>
   </ItemGroup>
 
 </Project>
