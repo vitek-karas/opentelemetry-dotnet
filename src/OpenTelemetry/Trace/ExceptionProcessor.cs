@@ -31,6 +31,9 @@ namespace OpenTelemetry.Trace
 
         public ExceptionProcessor()
         {
+#if NET6_0_OR_GREATER
+            this.fnGetExceptionPointers = Marshal.GetExceptionPointers;
+#else
             try
             {
                 var flags = BindingFlags.Static | BindingFlags.Public;
@@ -43,6 +46,7 @@ namespace OpenTelemetry.Trace
             {
                 throw new NotSupportedException($"'{typeof(Marshal).FullName}.GetExceptionPointers' is not supported", ex);
             }
+#endif
         }
 
         /// <inheritdoc />

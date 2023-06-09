@@ -15,8 +15,6 @@
 // </copyright>
 
 using System.Diagnostics;
-using System.Linq.Expressions;
-using System.Reflection;
 #pragma warning restore IDE0005
 
 namespace OpenTelemetry.Instrumentation
@@ -28,20 +26,14 @@ namespace OpenTelemetry.Instrumentation
 
         private static Action<Activity, ActivitySource> CreateActivitySourceSetter()
         {
-            ParameterExpression instance = Expression.Parameter(typeof(Activity), "instance");
-            ParameterExpression propertyValue = Expression.Parameter(typeof(ActivitySource), "propertyValue");
-            PropertyInfo sourcePropertyInfo = typeof(Activity).GetProperty("Source");
-            var body = Expression.Assign(Expression.Property(instance, sourcePropertyInfo), propertyValue);
-            return Expression.Lambda<Action<Activity, ActivitySource>>(body, instance, propertyValue).Compile();
+            return (Action<Activity, ActivitySource>)typeof(Activity).GetProperty("Source")
+                .GetGetMethod().CreateDelegate(typeof(Action<Activity, ActivitySource>));
         }
 
         private static Action<Activity, ActivityKind> CreateActivityKindSetter()
         {
-            ParameterExpression instance = Expression.Parameter(typeof(Activity), "instance");
-            ParameterExpression propertyValue = Expression.Parameter(typeof(ActivityKind), "propertyValue");
-            PropertyInfo kindPropertyInfo = typeof(Activity).GetProperty("Kind");
-            var body = Expression.Assign(Expression.Property(instance, kindPropertyInfo), propertyValue);
-            return Expression.Lambda<Action<Activity, ActivityKind>>(body, instance, propertyValue).Compile();
+            return (Action<Activity, ActivityKind>)typeof(Activity).GetProperty("Kind")
+                .GetGetMethod().CreateDelegate(typeof(Action<Activity, ActivityKind>));
         }
     }
 }
