@@ -93,10 +93,26 @@ namespace OpenTelemetry.Instrumentation
                         return null;
                     }
 
-                    var typedPropertyFetcher = typeof(TypedPropertyFetch<,>);
-                    var instantiatedTypedPropertyFetcher = typedPropertyFetcher.MakeGenericType(
-                        typeof(T), propertyInfo.DeclaringType, propertyInfo.PropertyType);
-                    return (PropertyFetch)Activator.CreateInstance(instantiatedTypedPropertyFetcher, propertyInfo);
+                    if (propertyInfo.DeclaringType.IsValueType || propertyInfo.PropertyType.IsValueType || typeof(T).IsValueType)
+                    {
+                        return new BoxedValueTypedPropertyFetch(propertyInfo);
+                    }
+                    else
+                    {
+                        return CreateReferencedTypedPropertyFetch(propertyInfo);
+                    }
+
+                    // IL3050 is generated here because of the call to MakeGenericType, which is problematic in AOT
+                    // if one of the type parameters is a value type (since the compiler might need to generate code specific to that type).
+                    // If all the type parameters are reference types, it's not a problem since the generated code can be shared among all reference types instantiations.
+                    [UnconditionalSuppressMessage ("AOT", "IL3050", Justification = "The code guarantees that all the generic parameters are reference types")]
+                    static PropertyFetch CreateReferencedTypedPropertyFetch(PropertyInfo propertyInfo)
+                    {
+                        var typedPropertyFetcher = typeof(ReferenceTypedPropertyFetch<,>);
+                        var instantiatedTypedPropertyFetcher = typedPropertyFetcher.MakeGenericType(
+                            typeof(T), propertyInfo.DeclaringType, propertyInfo.PropertyType);
+                        return (PropertyFetch)Activator.CreateInstance(instantiatedTypedPropertyFetcher, propertyInfo);
+                    }
                 }
             }
 
@@ -107,15 +123,16 @@ namespace OpenTelemetry.Instrumentation
             }
 
             [RequiresUnreferencedCode(TrimCompatibilityMessage)]
-            private sealed class TypedPropertyFetch<TDeclaredObject, TDeclaredProperty> : PropertyFetch
-                where TDeclaredProperty : T
+            internal sealed class ReferenceTypedPropertyFetch<TDeclaredObject, TDeclaredProperty> : PropertyFetch
+                where TDeclaredProperty : class, T
+                where TDeclaredObject : class
             {
                 private readonly string propertyName;
                 private readonly Func<TDeclaredObject, TDeclaredProperty> propertyFetch;
 
                 private PropertyFetch innerFetcher;
 
-                public TypedPropertyFetch(PropertyInfo property)
+                public ReferenceTypedPropertyFetch(PropertyInfo property)
                 {
                     this.propertyName = property.Name;
                     this.propertyFetch = (Func<TDeclaredObject, TDeclaredProperty>)property.GetMethod.CreateDelegate(typeof(Func<TDeclaredObject, TDeclaredProperty>));
@@ -126,6 +143,42 @@ namespace OpenTelemetry.Instrumentation
                     if (obj is TDeclaredObject o)
                     {
                         value = this.propertyFetch(o);
+                        return true;
+                    }
+
+                    this.innerFetcher ??= Create(obj.GetType().GetTypeInfo(), this.propertyName);
+
+                    if (this.innerFetcher == null)
+                    {
+                        value = default;
+                        return false;
+                    }
+
+                    return this.innerFetcher.TryFetch(obj, out value);
+                }
+            }
+
+            [RequiresUnreferencedCode(TrimCompatibilityMessage)]
+            private sealed class BoxedValueTypedPropertyFetch : PropertyFetch
+            {
+                private readonly string propertyName;
+                private readonly Func<object, T> propertyFetch;
+                private readonly Type containerType;
+
+                private PropertyFetch innerFetcher;
+
+                public BoxedValueTypedPropertyFetch(PropertyInfo property)
+                {
+                    this.propertyName = property.Name;
+                    this.propertyFetch = container => (T)property.GetValue(container);
+                    this.containerType = property.DeclaringType;
+                }
+
+                public override bool TryFetch(object obj, out T value)
+                {
+                    if (obj.GetType() == this.containerType)
+                    {
+                        value = this.propertyFetch(obj);
                         return true;
                     }
 

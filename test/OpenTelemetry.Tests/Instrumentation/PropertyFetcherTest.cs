@@ -78,6 +78,33 @@ namespace OpenTelemetry.Instrumentation.Tests
             Assert.Equal("A", propertyValue);
         }
 
+        [Fact]
+        public void FetchPropertyMultiplePayloadValueTypes()
+        {
+            var fetch = new PropertyFetcher<ValuePropertyType>("Property");
+
+            Assert.True(fetch.TryFetch(new ReferencePayloadWithValueProperty(), out ValuePropertyType propertyValueFromReferencePayload));
+            Assert.Equal(42, propertyValueFromReferencePayload.Value);
+
+            Assert.True(fetch.TryFetch(new ValuePayloadWithValueProperty(), out ValuePropertyType propertyValueFromValuePayload));
+            Assert.Equal(43, propertyValueFromValuePayload.Value);
+        }
+
+        private struct ValuePropertyType
+        {
+            public int Value;
+        }
+
+        private struct ValuePayloadWithValueProperty
+        {
+            public ValuePayloadWithValueProperty()
+            {
+                this.Property = new ValuePropertyType() { Value = 43 };
+            }
+
+            public ValuePropertyType Property { get; set; }
+        }
+
         private class PayloadTypeA
         {
             public string Property { get; set; } = "A";
@@ -90,6 +117,11 @@ namespace OpenTelemetry.Instrumentation.Tests
 
         private class PayloadTypeC
         {
+        }
+
+        private class ReferencePayloadWithValueProperty
+        {
+            public ValuePropertyType Property { get; set; } = new ValuePropertyType() { Value = 42 };
         }
     }
 }
