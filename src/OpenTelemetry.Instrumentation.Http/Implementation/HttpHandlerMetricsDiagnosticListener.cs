@@ -15,6 +15,7 @@
 // </copyright>
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Metrics;
 #if NETFRAMEWORK
 using System.Net.Http;
@@ -52,7 +53,7 @@ namespace OpenTelemetry.Instrumentation.Http.Implementation
                 }
 
                 var activity = Activity.Current;
-                if (this.stopRequestFetcher.TryFetch(payload, out HttpRequestMessage request) && request != null)
+                if (TryFetchRequest(payload, out HttpRequestMessage request))
                 {
                     TagList tags = default;
                     tags.Add(new KeyValuePair<string, object>(SemanticConventions.AttributeHttpMethod, HttpTagHelper.GetNameForHttpMethod(request.Method)));
@@ -65,7 +66,7 @@ namespace OpenTelemetry.Instrumentation.Http.Implementation
                         tags.Add(new KeyValuePair<string, object>(SemanticConventions.AttributeNetPeerPort, request.RequestUri.Port));
                     }
 
-                    if (this.stopResponseFetcher.TryFetch(payload, out HttpResponseMessage response) && response != null)
+                    if (TryFetchResponse(payload, out HttpResponseMessage response))
                     {
                         tags.Add(new KeyValuePair<string, object>(SemanticConventions.AttributeHttpStatusCode, TelemetryHelper.GetBoxedStatusCode(response.StatusCode)));
                     }
@@ -75,6 +76,32 @@ namespace OpenTelemetry.Instrumentation.Http.Implementation
                     // TODO: Follow up with .NET team if we can continue to rely on this behavior.
                     this.httpClientDuration.Record(activity.Duration.TotalMilliseconds, tags);
                 }
+            }
+
+            // See https://github.com/dotnet/runtime/blob/f9246538e3d49b90b0e9128d7b1defef57cd6911/src/libraries/System.Net.Http/src/System/Net/Http/DiagnosticsHandler.cs#L325
+            // this makes sure that top-level properties on the payload object are always preserved.
+            [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The event source guarantees that top level properties are preserved")]
+            bool TryFetchRequest(object payload, out HttpRequestMessage request)
+            {
+                if (!this.stopRequestFetcher.TryFetch(payload, out request) || request == null)
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            // See https://github.com/dotnet/runtime/blob/f9246538e3d49b90b0e9128d7b1defef57cd6911/src/libraries/System.Net.Http/src/System/Net/Http/DiagnosticsHandler.cs#L325
+            // this makes sure that top-level properties on the payload object are always preserved.
+            [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The event source guarantees that top level properties are preserved")]
+            bool TryFetchResponse(object payload, out HttpResponseMessage response)
+            {
+                if (!this.stopResponseFetcher.TryFetch(payload, out response) || response == null)
+                {
+                    return false;
+                }
+
+                return true;
             }
         }
     }

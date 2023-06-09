@@ -14,6 +14,7 @@
 // limitations under the License.
 // </copyright>
 
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using OpenTelemetry.Internal;
 #pragma warning restore IDE0005
@@ -26,6 +27,8 @@ namespace OpenTelemetry.Instrumentation
     /// <typeparam name="T">The type of the property being fetched.</typeparam>
     internal sealed class PropertyFetcher<T>
     {
+        private const string TrimCompatibilityMessage = "PropertyFetcher accessed property on any object type and thus is not trim compatible.";
+
         private readonly string propertyName;
         private PropertyFetch innerFetcher;
 
@@ -39,29 +42,13 @@ namespace OpenTelemetry.Instrumentation
         }
 
         /// <summary>
-        /// Fetch the property from the object.
-        /// </summary>
-        /// <param name="obj">Object to be fetched.</param>
-        /// <returns>Property fetched.</returns>
-        public T Fetch(object obj)
-        {
-            Guard.ThrowIfNull(obj);
-
-            if (!this.TryFetch(obj, out T value, true))
-            {
-                throw new ArgumentException($"Unable to fetch property: '{nameof(obj)}'", nameof(obj));
-            }
-
-            return value;
-        }
-
-        /// <summary>
         /// Try to fetch the property from the object.
         /// </summary>
         /// <param name="obj">Object to be fetched.</param>
         /// <param name="value">Fetched value.</param>
         /// <param name="skipObjNullCheck">Set this to <see langword= "true"/> if we know <paramref name="obj"/> is not <see langword= "null"/>.</param>
         /// <returns><see langword= "true"/> if the property was fetched.</returns>
+        [RequiresUnreferencedCode(TrimCompatibilityMessage)]
         public bool TryFetch(object obj, out T value, bool skipObjNullCheck = false)
         {
             if (!skipObjNullCheck && obj == null)
@@ -85,6 +72,7 @@ namespace OpenTelemetry.Instrumentation
         }
 
         // see https://github.com/dotnet/corefx/blob/master/src/System.Diagnostics.DiagnosticSource/src/System/Diagnostics/DiagnosticSourceEventSource.cs
+        [RequiresUnreferencedCode(TrimCompatibilityMessage)]
         private class PropertyFetch
         {
             public static PropertyFetch Create(TypeInfo type, string propertyName)
@@ -118,6 +106,7 @@ namespace OpenTelemetry.Instrumentation
                 return false;
             }
 
+            [RequiresUnreferencedCode(TrimCompatibilityMessage)]
             private sealed class TypedPropertyFetch<TDeclaredObject, TDeclaredProperty> : PropertyFetch
                 where TDeclaredProperty : T
             {

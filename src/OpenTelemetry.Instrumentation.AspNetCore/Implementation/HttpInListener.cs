@@ -15,6 +15,7 @@
 // </copyright>
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 #if !NETSTANDARD2_0
 using System.Runtime.CompilerServices;
@@ -351,7 +352,7 @@ namespace OpenTelemetry.Instrumentation.AspNetCore.Implementation
             if (activity.IsAllDataRequested)
             {
                 // We need to use reflection here as the payload type is not a defined public type.
-                if (!this.stopExceptionFetcher.TryFetch(payload, out Exception exc) || exc == null)
+                if (!TryFetchException(payload, out Exception exc))
                 {
                     AspNetCoreInstrumentationEventSource.Log.NullPayload(nameof(HttpInListener), nameof(this.OnException), activity.OperationName);
                     return;
@@ -371,6 +372,20 @@ namespace OpenTelemetry.Instrumentation.AspNetCore.Implementation
                 catch (Exception ex)
                 {
                     AspNetCoreInstrumentationEventSource.Log.EnrichmentException(nameof(HttpInListener), nameof(this.OnException), activity.OperationName, ex);
+                }
+
+                // See https://github.com/dotnet/aspnetcore/blob/690d78279e940d267669f825aa6627b0d731f64c/src/Hosting/Hosting/src/Internal/HostingApplicationDiagnostics.cs#L252
+                // and https://github.com/dotnet/aspnetcore/blob/690d78279e940d267669f825aa6627b0d731f64c/src/Middleware/Diagnostics/src/DeveloperExceptionPage/DeveloperExceptionPageMiddlewareImpl.cs#L174
+                // this makes sure that top-level properties on the payload object are always preserved.
+                [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The event source guarantees that top level properties are preserved")]
+                bool TryFetchException(object payload, out Exception exception)
+                {
+                    if (!this.stopExceptionFetcher.TryFetch(payload, out exception) || exception == null)
+                    {
+                        return false;
+                    }
+
+                    return true;
                 }
             }
         }

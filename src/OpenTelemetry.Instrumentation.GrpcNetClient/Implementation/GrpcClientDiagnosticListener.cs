@@ -15,6 +15,7 @@
 // </copyright>
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using OpenTelemetry.Context.Propagation;
 using OpenTelemetry.Instrumentation.Http;
@@ -84,7 +85,7 @@ namespace OpenTelemetry.Instrumentation.GrpcNetClient.Implementation
             }
 
             // Ensure context propagation irrespective of sampling decision
-            if (!this.startRequestFetcher.TryFetch(payload, out HttpRequestMessage request) || request == null)
+            if (!TryFetchRequest(payload, out HttpRequestMessage request))
             {
                 GrpcInstrumentationEventSource.Log.NullPayload(nameof(GrpcClientDiagnosticListener), nameof(this.OnStartActivity));
                 return;
@@ -160,6 +161,19 @@ namespace OpenTelemetry.Instrumentation.GrpcNetClient.Implementation
                     GrpcInstrumentationEventSource.Log.EnrichmentException(ex);
                 }
             }
+
+            // See https://github.com/grpc/grpc-dotnet/blob/ff1a07b90c498f259e6d9f4a50cdad7c89ecd3c0/src/Grpc.Net.Client/Internal/GrpcCall.cs#L1180-L1183
+            // this makes sure that top-level properties on the payload object are always preserved.
+            [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The event source guarantees that top level properties are preserved")]
+            bool TryFetchRequest(object payload, out HttpRequestMessage request)
+            {
+                if (!this.startRequestFetcher.TryFetch(payload, out request) || request == null)
+                {
+                    return false;
+                }
+
+                return true;
+            }
         }
 
         public void OnStopActivity(Activity activity, object payload)
@@ -181,7 +195,7 @@ namespace OpenTelemetry.Instrumentation.GrpcNetClient.Implementation
                 // Remove the grpc.status_code tag added by the gRPC .NET library
                 activity.SetTag(GrpcTagHelper.GrpcStatusCodeTagName, null);
 
-                if (this.stopRequestFetcher.TryFetch(payload, out HttpResponseMessage response) && response != null)
+                if (TryFetchResponse(payload, out HttpResponseMessage response))
                 {
                     try
                     {
@@ -192,6 +206,19 @@ namespace OpenTelemetry.Instrumentation.GrpcNetClient.Implementation
                         GrpcInstrumentationEventSource.Log.EnrichmentException(ex);
                     }
                 }
+            }
+
+            // See https://github.com/grpc/grpc-dotnet/blob/ff1a07b90c498f259e6d9f4a50cdad7c89ecd3c0/src/Grpc.Net.Client/Internal/GrpcCall.cs#L1180-L1183
+            // this makes sure that top-level properties on the payload object are always preserved.
+            [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The event source guarantees that top level properties are preserved")]
+            bool TryFetchResponse(object payload, out HttpResponseMessage response)
+            {
+                if (!this.stopRequestFetcher.TryFetch(payload, out response) || response == null)
+                {
+                    return false;
+                }
+
+                return true;
             }
         }
     }
