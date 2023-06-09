@@ -16,6 +16,7 @@
 
 #nullable enable
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -49,7 +50,7 @@ public static class OpenTelemetryLoggingExtensions
         builder.AddConfiguration();
 
         // Note: This will bind logger options element (eg "Logging:OpenTelemetry") to OpenTelemetryLoggerOptions
-        LoggerProviderOptions.RegisterProviderOptions<OpenTelemetryLoggerOptions, OpenTelemetryLoggerProvider>(builder.Services);
+        RegisterLoggerProviderOptions(builder);
 
         new LoggerProviderBuilderBase(builder.Services).ConfigureBuilder(
             (sp, logging) =>
@@ -79,6 +80,20 @@ public static class OpenTelemetryLoggingExtensions
                     disposeProvider: false)));
 
         return builder;
+
+        // The warning here is about the fact that the OpenTelemetryLoggerOptions will be bound to configuration using ConfigurationBinder
+        // That uses reflection a lot - so if any of the properties on that class were complex types reflection would be used on them
+        // and nothing could guarantee its correctness.
+        // Since currently this class only contains primitive (boolean) properties this is OK.
+        // This should be fully fixed with the introduction of Configuration binder source generator in .NET 8
+        // and then there should be a way to do this without any warnings.
+        // TODO - add a test which validates that OpenTelemetryLoggerOptions only has boolean properties!!!
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "OpenTelemetryLoggerOptions only contains boolean properties.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "OpenTelemetryLoggerOptions only contains boolean properties.")]
+        static void RegisterLoggerProviderOptions(ILoggingBuilder builder)
+        {
+            LoggerProviderOptions.RegisterProviderOptions<OpenTelemetryLoggerOptions, OpenTelemetryLoggerProvider>(builder.Services);
+        }
     }
 
     /// <summary>
