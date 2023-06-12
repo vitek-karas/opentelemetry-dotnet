@@ -36,6 +36,10 @@
     <RuntimeHostConfigurationOption Include="System.Text.Json.JsonSerializer.IsReflectionEnabledByDefault"
                                     Value="false"
                                     Trim="true"/>
+
+    <RuntimeHostConfigurationOption Include="OpenTelemetry.Logs.OpenTelemetryLogger.IsStateReflectionProcessingEnabled"
+                                    Value="false"
+                                    Trim="true"/>
   </ItemGroup>
 
 </Project>

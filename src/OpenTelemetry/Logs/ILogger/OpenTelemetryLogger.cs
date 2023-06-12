@@ -56,6 +56,12 @@ internal sealed class OpenTelemetryLogger : ILogger
         this.categoryName = categoryName!;
     }
 
+    internal static bool IsStateReflectionProcessingEnabled { get; } =
+        AppContext.TryGetSwitch(
+            switchName: "OpenTelemetry.Logs.OpenTelemetryLogger.IsStateReflectionProcessingEnabled",
+            isEnabled: out bool value)
+        ? value : true;
+
     internal IExternalScopeProvider? ScopeProvider { get; set; }
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
@@ -194,7 +200,7 @@ internal sealed class OpenTelemetryLogger : ILogger
             iLoggerData.State = state;
             return null;
         }
-        else
+        else if (IsStateReflectionProcessingEnabled)
         {
             try
             {
@@ -226,6 +232,11 @@ internal sealed class OpenTelemetryLogger : ILogger
 
                 return Array.Empty<KeyValuePair<string, object?>>();
             }
+        }
+        else
+        {
+            // TODO: LOG
+            return Array.Empty<KeyValuePair<string, object?>>();
         }
     }
 

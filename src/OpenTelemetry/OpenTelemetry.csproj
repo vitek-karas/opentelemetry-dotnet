@@ -26,4 +26,8 @@
          So the helper is in OpenTelemetry but can't be compiled here since the System.Text.Json dependency doesn't exist here. -->
     <Compile Remove="Internal/TagTransformerJsonHelper.cs"/>
   </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="ILLink.Substitutions.xml" LogicalName="ILLink.Substitutions.xml" />
+  </ItemGroup>
 </Project>

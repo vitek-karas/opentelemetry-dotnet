@@ -1,0 +1,8 @@
+<linker>
+  <assembly fullname="OpenTelemetry">
+    <type fullname="OpenTelemetry.Logs.OpenTelemetryLogger">
+      <method signature="System.Boolean get_IsStateReflectionProcessingEnabled()" body="stub" value="false" 
+              feature="OpenTelemetry.Logs.OpenTelemetryLogger.IsStateReflectionProcessingEnabled" featurevalue="false"/>
+    </type>
+  </assembly>
+</linker>
