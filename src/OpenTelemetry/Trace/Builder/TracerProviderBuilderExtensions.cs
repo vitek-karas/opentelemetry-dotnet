@@ -204,9 +204,9 @@ public static class TracerProviderBuilderExtensions
     /// <param name="tracerProviderBuilder"><see cref="TracerProviderBuilder"/>.</param>
     /// <returns>The supplied <see cref="TracerProviderBuilder"/> for chaining.</returns>
     public static TracerProviderBuilder AddProcessor<
-//#if NET6_0_OR_GREATER
-//        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
-//#endif
+#if NET6_0_OR_GREATER
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+#endif
         T>(this TracerProviderBuilder tracerProviderBuilder)
         where T : BaseProcessor<Activity>
     {
