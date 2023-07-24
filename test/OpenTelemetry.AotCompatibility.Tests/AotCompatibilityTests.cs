@@ -87,5 +87,51 @@ namespace OpenTelemetry.AotCompatibility.Tests
             var warnings = expectedOutput.ToString().Split('\n', '\r').Where(line => line.Contains("warning IL"));
             Assert.Equal(36, warnings.Count());
         }
+
+        [Fact]
+        public void EnsureTrimCompatibility()
+        {
+            string[] paths = { @"..", "..", "..", "..", "OpenTelemetry.AotCompatibility.TestApp" };
+            string testAppPath = Path.Combine(paths);
+            string testAppProject = "OpenTelemetry.AotCompatibility.TestApp.csproj";
+
+            // ensure we run a clean publish every time
+            DirectoryInfo testObjDir = new DirectoryInfo(Path.Combine(testAppPath, "obj"));
+            if (testObjDir.Exists)
+            {
+                testObjDir.Delete(recursive: true);
+            }
+
+            var process = new Process
+            {
+                // set '-nodereuse:false /p:UseSharedCompilation=false' so the MSBuild and Roslyn server processes don't hang around, which may hang the test in CI
+                StartInfo = new ProcessStartInfo("dotnet", $"publish {testAppProject} --self-contained -nodereuse:false /p:UseSharedCompilation=false /p:PublishAot=false /p:PublishTrimmed=true")
+                {
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WorkingDirectory = testAppPath,
+                },
+            };
+
+            var expectedOutput = new System.Text.StringBuilder();
+            process.OutputDataReceived += (sender, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                {
+                    this.testOutputHelper.WriteLine(e.Data);
+                    expectedOutput.AppendLine(e.Data);
+                }
+            };
+
+            process.Start();
+            process.BeginOutputReadLine();
+
+            Assert.True(process.WaitForExit(milliseconds: 240_000), "dotnet publish command timed out after 240 seconds.");
+            Assert.True(process.ExitCode == 0, "Publishing the AotCompatibility app failed. See test output for more details.");
+
+            var warnings = expectedOutput.ToString().Split('\n', '\r').Where(line => line.Contains("warning IL"));
+            Assert.Equal(36, warnings.Count());
+        }
     }
 }
