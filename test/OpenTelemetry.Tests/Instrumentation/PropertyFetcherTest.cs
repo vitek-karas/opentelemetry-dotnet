@@ -59,12 +59,7 @@ public class PropertyFetcherTest
         Assert.True(fetch.TryFetch(new PayloadTypeA(), out string propertyValue));
         Assert.Equal("A", propertyValue);
 
-        Assert.True(fetch.TryFetch(new PayloadTypeB(), out propertyValue));
-        Assert.Equal("B", propertyValue);
-
-        Assert.False(fetch.TryFetch(new PayloadTypeC(), out _));
-
-        Assert.False(fetch.TryFetch(null, out _));
+        Assert.Throws<NotSupportedException>(() => fetch.TryFetch(new PayloadTypeB(), out propertyValue));
     }
 
     [Fact]

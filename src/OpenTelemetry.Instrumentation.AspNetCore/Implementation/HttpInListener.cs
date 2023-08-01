@@ -61,7 +61,8 @@ internal class HttpInListener : ListenerHandler
     private readonly PropertyFetcher<object> beforeActionAttributeRouteInfoFetcher = new("AttributeRouteInfo");
     private readonly PropertyFetcher<string> beforeActionTemplateFetcher = new("Template");
 #endif
-    private readonly PropertyFetcher<Exception> stopExceptionFetcher = new("Exception");
+    private readonly PropertyFetcher<Exception> stopExceptionFetcherHosting = new("Exception");
+    private readonly PropertyFetcher<Exception> stopExceptionFetcherDiagnostics = new("exception");
     private readonly AspNetCoreInstrumentationOptions options;
     private readonly bool emitOldAttributes;
     private readonly bool emitNewAttributes;
@@ -101,9 +102,14 @@ internal class HttpInListener : ListenerHandler
 
                 break;
             case OnUnhandledHostingExceptionEvent:
+                {
+                    this.OnException(Activity.Current, payload, this.stopExceptionFetcherHosting);
+                }
+
+                break;
             case OnUnHandledDiagnosticsExceptionEvent:
                 {
-                    this.OnException(Activity.Current, payload);
+                    this.OnException(Activity.Current, payload, this.stopExceptionFetcherDiagnostics);
                 }
 
                 break;
@@ -399,12 +405,12 @@ internal class HttpInListener : ListenerHandler
         }
     }
 
-    public void OnException(Activity activity, object payload)
+    public void OnException(Activity activity, object payload, PropertyFetcher<Exception> stopExceptionFetcher)
     {
         if (activity.IsAllDataRequested)
         {
             // We need to use reflection here as the payload type is not a defined public type.
-            if (!this.stopExceptionFetcher.TryFetch(payload, out Exception exc) || exc == null)
+            if (!stopExceptionFetcher.TryFetch(payload, out Exception exc) || exc == null)
             {
                 AspNetCoreInstrumentationEventSource.Log.NullPayload(nameof(HttpInListener), nameof(this.OnException), activity.OperationName);
                 return;
